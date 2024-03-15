@@ -1,9 +1,6 @@
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using VoxMod.Main;
-using Vector2 = System.Numerics.Vector2;
-using Vector3 = System.Numerics.Vector3;
-using Vector4 = System.Numerics.Vector4;
 
 namespace VoxMod.Rendering.Objects;
 
@@ -71,10 +68,12 @@ public class VoxMaterial
     public void SetIntUniform(string name, int value)
     {
         if (_uniformLocations.TryGetValue(name, out var location))
+        {
             GL.Uniform1(location, value);
+        }
         else
         {
-            var newLocation = GL.GetUniformLocation(_program, name);
+            var newLocation = CheckLocationExists(GL.GetUniformLocation(_program, name));
             _uniformLocations.Add(name, newLocation);
             GL.Uniform1(newLocation, value);
         }
@@ -83,10 +82,12 @@ public class VoxMaterial
     public void SetFloatUniform(string name, float value)
     {
         if (_uniformLocations.TryGetValue(name, out var location))
+        {
             GL.Uniform1(location, value);
+        }
         else
         {
-            var newLocation = GL.GetUniformLocation(_program, name);
+            var newLocation = CheckLocationExists(GL.GetUniformLocation(_program, name));
             _uniformLocations.Add(name, newLocation);
             GL.Uniform1(newLocation, value);
         }
@@ -95,10 +96,12 @@ public class VoxMaterial
     public void SetVector2Uniform(string name, Vector2 value)
     {
         if (_uniformLocations.TryGetValue(name, out var location))
-            GL.Uniform2(location, value.X, value.Y);
+        {
+            GL.Uniform2(location, value);
+        }
         else
         {
-            var newLocation = GL.GetUniformLocation(_program, name);
+            var newLocation = CheckLocationExists(GL.GetUniformLocation(_program, name));
             _uniformLocations.Add(name, newLocation);
             GL.Uniform2(newLocation, value.X, value.Y);
         }
@@ -107,10 +110,12 @@ public class VoxMaterial
     public void SetVector3Uniform(string name, Vector3 value)
     {
         if (_uniformLocations.TryGetValue(name, out var location))
+        {
             GL.Uniform3(location, value.X, value.Y, value.Z);
+        }
         else
         {
-            var newLocation = GL.GetUniformLocation(_program, name);
+            var newLocation = CheckLocationExists(GL.GetUniformLocation(_program, name));
             _uniformLocations.Add(name, newLocation);
             GL.Uniform3(newLocation, value.X, value.Y, value.Z);
         }
@@ -119,10 +124,12 @@ public class VoxMaterial
     public void SetVector4Uniform(string name, Vector4 value)
     {
         if (_uniformLocations.TryGetValue(name, out var location))
+        {
             GL.Uniform4(location, value.X, value.Y, value.Z, value.W);
+        }
         else
         {
-            var newLocation = GL.GetUniformLocation(_program, name);
+            var newLocation = CheckLocationExists(GL.GetUniformLocation(_program, name));
             _uniformLocations.Add(name, newLocation);
             GL.Uniform4(newLocation, value.X, value.Y, value.Z, value.W);
         }
@@ -131,12 +138,23 @@ public class VoxMaterial
     public void SetMatrix4Uniform(string name, Matrix4 value, bool transpose = true)
     {
         if (_uniformLocations.TryGetValue(name, out var location))
+        {
             GL.UniformMatrix4(location, transpose, ref value);
+        }
         else
         {
-            var newLocation = GL.GetUniformLocation(_program, name);
+            var newLocation = CheckLocationExists(GL.GetUniformLocation(_program, name));
             _uniformLocations.Add(name, newLocation);
             GL.UniformMatrix4(newLocation, transpose, ref value);
         }
+    }
+
+    private int CheckLocationExists(int location)
+    {
+        if (location == -1)
+        {
+            throw new Exception("Invalid location!");
+        }
+        return location;
     }
 }

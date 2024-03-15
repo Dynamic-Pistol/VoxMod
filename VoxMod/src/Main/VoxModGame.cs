@@ -73,14 +73,15 @@ public class VoxModGame(GameWindowSettings gameWindowSettings, NativeWindowSetti
     private int _texture1, _texture2;
     private VoxMaterial _mat = default!;
     private uint[] _indices;
-    private VoxVertex[] _vertices;
-    private readonly Matrix4 _proj = Matrix4.Identity *  Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(45), 800.0f / 600.0f, 0.1f, 100f);
-    private readonly Matrix4 _view = Matrix4.CreateTranslation(0, 0, -3);
+    private VoxSimpleVertexTextured[] _vertices;
+    private Matrix4 _proj = Matrix4.Identity *  Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(45), 800.0f / 600.0f, 0.1f, 100f);
+    private Matrix4 _view => Matrix4.Identity * Matrix4.LookAt(_cameraPosition, _cameraPosition + _cameraForward, _cameraUp);
 
     
     protected override void OnLoad()
     {
         base.OnLoad();
+        CursorState = CursorState.Grabbed;
         _controller = new ImGuiController(ClientSize.X, ClientSize.Y);
         
         GL.DebugMessageCallback(DebugMessages, IntPtr.Zero);
@@ -91,20 +92,20 @@ public class VoxModGame(GameWindowSettings gameWindowSettings, NativeWindowSetti
         var positions = model.GetVertices("POSITION").AsVector3Array().ToArray();
         var uvs = model.GetVertices("TEXCOORD_0").AsVector2Array().ToArray();
         _indices = model.GetIndices().ToArray();
-
+        
         if (uvs.Length != positions.Length)
         {
             throw new Exception("Invalid size!");
         }
 
-        _vertices = new VoxVertex[positions.Length];
+        _vertices = new VoxSimpleVertexTextured[positions.Length];
 
         for (int i = 0; i < positions.Length; i++)
         {
-            _vertices[i] = new VoxVertex(positions[i].X, positions[i].Y, positions[i].Z, uvs[i].X, uvs[i].Y);
+            _vertices[i] = new VoxSimpleVertexTextured(positions[i].X, positions[i].Y, positions[i].Z, uvs[i].X, uvs[i].Y);
         }
 
-        var size_V = _vertices.Length * Marshal.SizeOf<VoxVertex>();
+        var size_V = _vertices.Length * Marshal.SizeOf<VoxSimpleVertexTextured>();
         var size_I = _indices.Length * sizeof(uint);
         
             
@@ -124,15 +125,17 @@ public class VoxModGame(GameWindowSettings gameWindowSettings, NativeWindowSetti
         GL.CreateVertexArrays(1, out _vao);
         
         GL.VertexArrayElementBuffer(_vao, _buffer);
-        GL.VertexArrayVertexBuffer(_vao, 0, _buffer, size_I, Marshal.SizeOf<VoxVertex>());
+        GL.VertexArrayVertexBuffer(_vao, 0, _buffer, size_I, Marshal.SizeOf<VoxSimpleVertexTextured>());
         GL.EnableVertexArrayAttrib(_vao, 0);
-        GL.VertexArrayAttribFormat(_vao, 0, sizeof(float) * 3, VertexAttribType.Float, false, 0);
-        GL.VertexArrayAttribBinding(_vao, 0, 0);
         GL.EnableVertexArrayAttrib(_vao, 1);
-        GL.VertexArrayAttribFormat(_vao, 1, sizeof(float) * 2, VertexAttribType.Float, false, sizeof(float) * 3);
+        GL.VertexArrayAttribFormat(_vao, 0,  3, VertexAttribType.Float, false, 
+            (uint)Marshal.OffsetOf<VoxSimpleVertexTextured>(nameof(VoxSimpleVertexTextured.Position)));
+        GL.VertexArrayAttribFormat(_vao, 1, 2, VertexAttribType.Float, false, 
+            (uint)Marshal.OffsetOf<VoxSimpleVertexTextured>(nameof(VoxSimpleVertexTextured.UVs)));
+        GL.VertexArrayAttribBinding(_vao, 0, 0);
         GL.VertexArrayAttribBinding(_vao, 1, 0);
         
-        StbImage.stbi_set_flip_vertically_on_load(1);
+        //StbImage.stbi_set_flip_vertically_on_load(1);
 
         _texture1 = GL.GenTexture();
         GL.BindTexture(TextureTarget.Texture2D, _texture1);
@@ -171,21 +174,38 @@ public class VoxModGame(GameWindowSettings gameWindowSettings, NativeWindowSetti
     }
 
     private Vector2 _moveInput;
+    private Vector3 _cameraForward = -Vector3.UnitZ;
+    private Vector3 _cameraUp = Vector3.UnitY;
     private Vector3 _cameraPosition;
-    private Quaternion _cameraRotation;
+    private float _yaw;
+    private float _pitch;
     
     protected override void OnUpdateFrame(FrameEventArgs args)
     {
         base.OnUpdateFrame(args);
-        _moveInput.X = Convert.ToInt32(KeyboardState[Keys.A]) - Convert.ToInt32(KeyboardState[Keys.D]);
-        _moveInput.Y = Convert.ToInt32(KeyboardState[Keys.W]) - Convert.ToInt32(KeyboardState[Keys.S]);
-        _cameraPosition += (Vector3.UnitX * _moveInput.X + Vector3.UnitZ * _moveInput.Y) * (float)args.Time;
+        _moveInput.X = Convert.ToInt32(KeyboardState[Keys.D]) - Convert.ToInt32(KeyboardState[Keys.A]);
+        _moveInput.Y = Convert.ToInt32(KeyboardState[Keys.S]) - Convert.ToInt32(KeyboardState[Keys.W]);
+        const float speed = 3;
+        _cameraPosition += (Vector3.Cross(_cameraForward, _cameraUp).Normalized() * _moveInput.X + Vector3.UnitZ * _moveInput.Y) * speed * (float)args.Time;
     }
 
     protected override void OnMouseMove(MouseMoveEventArgs e)
     {
         base.OnMouseMove(e);
-        _cameraRotation += Quaternion.FromEulerAngles(e.Delta.Y, e.Delta.X, 0);
+        const float sensitivity = 0.1f;
+        float moveX = e.DeltaX * sensitivity;
+        float moveY = e.DeltaY * sensitivity;
+
+        _yaw += moveX;
+        _pitch += moveY;
+
+        _pitch = Math.Clamp(_pitch, -89f, 89f);
+        
+        Vector3 front;
+        front.X = MathF.Cos(_yaw) * MathF.Cos(_pitch);
+        front.Y = MathF.Sin(_pitch);
+        front.Z = MathF.Sin(_yaw) * MathF.Cos(_pitch);
+        _cameraForward = front.Normalized();
     }
 
     protected override void OnRenderFrame(FrameEventArgs e)
@@ -208,12 +228,10 @@ public class VoxModGame(GameWindowSettings gameWindowSettings, NativeWindowSetti
         for (int i = 0; i < _cubePositions.Length; i++)
         {
             Matrix4 model = Matrix4.CreateFromAxisAngle(new Vector3(1, 0.3f, 0.5f), 22 * i)
-                            * Matrix4.CreateTranslation(_cubePositions[i]) * Matrix4.CreateTranslation(_cameraPosition)
-                            * Matrix4.CreateFromQuaternion(_cameraRotation);
+                * Matrix4.CreateTranslation(_cubePositions[i]) * Matrix4.CreateScale(0.25f);
             _mat.SetMatrix4Uniform("model", model, false);
             GL.DrawElements(PrimitiveType.Triangles, _indices.Length, DrawElementsType.UnsignedInt, 0);
         }
-        
         
         _controller.Update(this, (float)e.Time);
         
@@ -229,6 +247,15 @@ public class VoxModGame(GameWindowSettings gameWindowSettings, NativeWindowSetti
         GL.Viewport(0, 0, e.Width, e.Height);
         
         _controller.WindowResized(e.Width, e.Height);
+    }
+
+    protected override void OnKeyDown(KeyboardKeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+        if (e.Key == Keys.Escape)
+        {
+            this.Close();
+        }
     }
 
     protected override void OnMouseWheel(MouseWheelEventArgs e)
