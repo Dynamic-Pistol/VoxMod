@@ -74,8 +74,8 @@ public class VoxModGame(GameWindowSettings gameWindowSettings, NativeWindowSetti
     private VoxMaterial _mat = default!;
     private uint[] _indices;
     private VoxSimpleVertexTextured[] _vertices;
-    private Matrix4 _proj = Matrix4.Identity *  Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(45), 800.0f / 600.0f, 0.1f, 100f);
-    private Matrix4 _view => Matrix4.Identity * Matrix4.LookAt(_cameraPosition, _cameraPosition + _cameraForward, _cameraUp);
+    private Matrix4 Proj => Matrix4.Identity *  Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(_fov), 800.0f / 600.0f, 0.1f, 100f);
+    private Matrix4 View => Matrix4.Identity * Matrix4.LookAt(_cameraPosition, _cameraPosition + _cameraForward, _cameraUp);
 
     
     protected override void OnLoad()
@@ -179,6 +179,7 @@ public class VoxModGame(GameWindowSettings gameWindowSettings, NativeWindowSetti
     private Vector3 _cameraPosition;
     private float _yaw;
     private float _pitch;
+    private float _fov;
     
     protected override void OnUpdateFrame(FrameEventArgs args)
     {
@@ -187,12 +188,13 @@ public class VoxModGame(GameWindowSettings gameWindowSettings, NativeWindowSetti
         _moveInput.Y = Convert.ToInt32(KeyboardState[Keys.S]) - Convert.ToInt32(KeyboardState[Keys.W]);
         const float speed = 3;
         _cameraPosition += (Vector3.Cross(_cameraForward, _cameraUp).Normalized() * _moveInput.X + Vector3.UnitZ * _moveInput.Y) * speed * (float)args.Time;
+        _fov = Math.Clamp(_fov - MouseState.Scroll.Y, 1, 45);
     }
 
     protected override void OnMouseMove(MouseMoveEventArgs e)
     {
         base.OnMouseMove(e);
-        const float sensitivity = 0.1f;
+        const float sensitivity = 0.05f;
         float moveX = e.DeltaX * sensitivity;
         float moveY = e.DeltaY * sensitivity;
 
@@ -221,8 +223,8 @@ public class VoxModGame(GameWindowSettings gameWindowSettings, NativeWindowSetti
         GL.ActiveTexture(TextureUnit.Texture1);
         GL.BindTexture(TextureTarget.Texture2D, _texture2);
         _mat.Use();
-        _mat.SetMatrix4Uniform("proj", _proj, false);
-        _mat.SetMatrix4Uniform("view", _view, false);
+        _mat.SetMatrix4Uniform("proj", Proj, false);
+        _mat.SetMatrix4Uniform("view", View, false);
 
         GL.BindVertexArray(_vao);
         for (int i = 0; i < _cubePositions.Length; i++)
