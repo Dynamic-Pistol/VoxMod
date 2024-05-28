@@ -9,23 +9,24 @@ public struct VoxTransform{
     public Vector3 Scale;
 }
 
-public struct VoxMeshComponent
-{
+public struct VoxPoint {
+    public Vector3 Position;
+    public Quaternion Rotation;
+}
+
+public struct VoxMeshComponent{
     public VoxMesh Mesh;
 }
 
-public struct VoxMaterialComponent
-{
+public struct VoxMaterialComponent {
     public VoxMaterial Material;
 }
 
-public struct VoxCamera
-{
+public struct VoxCamera {
     public Matrix4 Projection;
 }
 
-public struct VoxSelected
-{
+public struct VoxSelected {
     public bool IsSelected;
 }
 
