@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using VoxMod.Main;
@@ -40,6 +41,11 @@ public class VoxMaterial
         }
     }
 
+    ~VoxMaterial()
+    {
+        GL.DeleteProgram(_program);
+    }
+
     public void Use()
     {
         GL.UseProgram(_program);
@@ -48,21 +54,21 @@ public class VoxMaterial
     private int CompileShader(KeyValuePair<ShaderType, string> shaderSource)
     {
         
-        int shaderID = GL.CreateShader(shaderSource.Key);
+        int shaderId = GL.CreateShader(shaderSource.Key);
         
-        GL.ShaderSource(shaderID, shaderSource.Value);
+        GL.ShaderSource(shaderId, shaderSource.Value);
         
-        GL.CompileShader(shaderID);
+        GL.CompileShader(shaderId);
         
-        GL.GetShader(shaderID, ShaderParameter.CompileStatus, out int success);
+        GL.GetShader(shaderId, ShaderParameter.CompileStatus, out int success);
         if (success == 0)
         {
-            VoxLogger.LogError("Error compiling shader of type {0}: {1}", shaderSource.Key, GL.GetShaderInfoLog(shaderID));
+            VoxLogger.LogError("Error compiling shader of type {0}: {1}", shaderSource.Key, GL.GetShaderInfoLog(shaderId));
             throw new Exception($"Failed to compile shader of type {shaderSource.Key}");
         }
         
 
-        return shaderID;
+        return shaderId;
     }
 
     public void SetIntUniform(string name, int value)

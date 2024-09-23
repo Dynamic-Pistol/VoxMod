@@ -2,12 +2,12 @@ using System.Drawing;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using Arch.Core;
+using Arch.Core.Extensions;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
-using SharpGLTF.Schema2;
 using StbImageSharp;
 using VoxMod.GUI;
 using VoxMod.Rendering.Objects;
@@ -19,7 +19,7 @@ namespace VoxMod.Main;
 public class VoxModGame(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings)
     : GameWindow(gameWindowSettings, nativeWindowSettings)
 {
-    private readonly World _world = World.Create();
+    // private readonly World _world = World.Create();
 
     private ImGuiController _controller = default!;
 
@@ -95,7 +95,7 @@ public class VoxModGame(GameWindowSettings gameWindowSettings, NativeWindowSetti
     
             void main()
             {
-                gl_Position = proj * view * model * vec4(aPosition, 1.0);
+                gl_Position = vec4(aPosition, 1.0) * model * view * proj;
                 TexCoord = aTexCoord;
             }
     """;
@@ -116,16 +116,16 @@ public class VoxModGame(GameWindowSettings gameWindowSettings, NativeWindowSetti
         """;
     private uint _vao;
     private uint _vbo;
-    private uint _buffer;
+    // private uint _buffer;
     private int _texture1, _texture2;
     private VoxMaterial _mat = default!;
-    private uint[] _indices;
+    private uint[] _indices = [];
     private Matrix4 Proj => Matrix4.Identity *  Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(_fov), 800.0f / 600.0f, 0.1f, 100f);
     private Matrix4 View => Matrix4.Identity * Matrix4.LookAt(_cameraPosition, _cameraPosition + _cameraForward, _cameraUp);
-
     
     protected override void OnLoad()
     {
+        
         base.OnLoad();
         CursorState = CursorState.Grabbed;
         _controller = new ImGuiController(ClientSize.X, ClientSize.Y);
@@ -133,9 +133,6 @@ public class VoxModGame(GameWindowSettings gameWindowSettings, NativeWindowSetti
         GL.DebugMessageCallback(DebugMessages, IntPtr.Zero);
         GL.Enable(EnableCap.DebugOutput);
         GL.Enable(EnableCap.DepthTest);
-
-        var sizeV = _vertices.Length * Marshal.SizeOf<VoxSimpleVertexTextured>();
-        //var sizeI = _indices.Length * sizeof(uint);
         
             
         _mat = new VoxMaterial(new Dictionary<ShaderType, string>
@@ -218,31 +215,32 @@ public class VoxModGame(GameWindowSettings gameWindowSettings, NativeWindowSetti
 
     private Vector2 _moveInput;
     private Vector3 _cameraForward = -Vector3.UnitZ;
-    private Vector3 _cameraUp = Vector3.UnitY;
+    private readonly Vector3 _cameraUp = Vector3.UnitY;
     private Vector3 _cameraPosition = new Vector3(0, 0, 3);
     private float _yaw;
     private float _pitch;
-    private float _fov;
+    private float _fov = 45.0f;
     
     protected override void OnUpdateFrame(FrameEventArgs args)
     {
         base.OnUpdateFrame(args);
         _moveInput.X = Convert.ToInt32(KeyboardState[Keys.D]) - Convert.ToInt32(KeyboardState[Keys.A]);
-        _moveInput.Y = Convert.ToInt32(KeyboardState[Keys.S]) - Convert.ToInt32(KeyboardState[Keys.W]);
+        _moveInput.Y = Convert.ToInt32(KeyboardState[Keys.W]) - Convert.ToInt32(KeyboardState[Keys.S]);
         const float speed = 6;
-        _cameraPosition += (Vector3.Cross(_cameraForward, _cameraUp).Normalized() * _moveInput.X + Vector3.UnitZ * _moveInput.Y) * speed * (float)args.Time;
+        _cameraPosition += Vector3.Cross(_cameraForward, _cameraUp).Normalized() * _moveInput.X * speed * (float)args.Time;
+        _cameraPosition += _cameraForward * _moveInput.Y * speed * (float)args.Time;
         _fov = Math.Clamp(_fov - MouseState.Scroll.Y, 1, 45);
     }
 
     protected override void OnMouseMove(MouseMoveEventArgs e)
     {
         base.OnMouseMove(e);
-        const float sensitivity = 0.01f;
+        const float sensitivity = 0.04f;
         float moveX = e.DeltaX * sensitivity;
         float moveY = e.DeltaY * sensitivity;
 
         _yaw += moveX;
-        _pitch += moveY;
+        _pitch -= moveY;
         
         _pitch = Math.Clamp(_pitch, -89f, 89f);
         
@@ -252,7 +250,7 @@ public class VoxModGame(GameWindowSettings gameWindowSettings, NativeWindowSetti
         front.Z = MathF.Sin(MathHelper.DegreesToRadians(_yaw)) * MathF.Cos(MathHelper.DegreesToRadians(_pitch));
         _cameraForward = front.Normalized();
     }
-
+    
     protected override void OnRenderFrame(FrameEventArgs e)
     {
         base.OnRenderFrame(e);
@@ -260,26 +258,32 @@ public class VoxModGame(GameWindowSettings gameWindowSettings, NativeWindowSetti
         GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
         GL.ClearColor(Color.Aqua);
 
-
         GL.ActiveTexture(TextureUnit.Texture0);
         GL.BindTexture(TextureTarget.Texture2D, _texture1);
         GL.ActiveTexture(TextureUnit.Texture1);
         GL.BindTexture(TextureTarget.Texture2D, _texture2);
-        _mat.Use();
-        _mat.SetMatrix4Uniform("proj", Proj, true);
-        _mat.SetMatrix4Uniform("view", View, true);
-
         GL.BindVertexArray(_vao);
+        _mat.Use();
+        _mat.SetMatrix4Uniform("proj", Proj);
+        _mat.SetMatrix4Uniform("view", View);
+
+        
         for (int i = 0; i < _cubePositions.Length; i++)
         {
-            Matrix4 model = Matrix4.CreateFromAxisAngle(new Vector3(1, 0.3f, 0.5f), MathHelper.DegreesToRadians(22 * i))
-                * Matrix4.CreateTranslation(_cubePositions[i]) * Matrix4.CreateScale(0.25f);
-            _mat.SetMatrix4Uniform("model", model, true);
+            Matrix4 model = Matrix4.Identity 
+                    *Matrix4.CreateTranslation(_cubePositions[i]) 
+                    * Matrix4.CreateScale(0.25f) 
+                    * Matrix4.CreateFromAxisAngle(new Vector3(1, 0.3f, 0.5f), MathHelper.DegreesToRadians(22 * i))
+                ;
+            _mat.SetMatrix4Uniform("model", model);
             //GL.DrawElements(PrimitiveType.Triangles, _indices.Length, DrawElementsType.UnsignedInt, 0);
             GL.DrawArrays(PrimitiveType.Triangles, 0, _vertices.Length);
         }
+        /* Matrix4 model = Matrix4.Identity * Matrix4.CreateTranslation(0, 0, 3);
+        _mat.SetMatrix4Uniform("model", model, transpose);
+        GL.DrawArrays(PrimitiveType.Triangles, 0, _vertices.Length);
+        _controller.Update(this, (float)e.Time);*/
         
-        _controller.Update(this, (float)e.Time);
         
         _controller.Render();
         

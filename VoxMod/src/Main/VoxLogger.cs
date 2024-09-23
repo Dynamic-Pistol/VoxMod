@@ -5,8 +5,8 @@ namespace VoxMod.Main;
 
 public static class VoxLogger
 {
-    private static Logger _logger = new LoggerConfiguration().WriteTo.Console().WriteTo.File("log.txt").CreateLogger();
+    private static readonly Logger Logger = new LoggerConfiguration().WriteTo.Console().WriteTo.File("log.txt").CreateLogger();
 
-    public static void LogInfo(string msg, params object[] contexts) => _logger.Information(msg, contexts);
-    public static void LogError(string msg, params object[] contexts) => _logger.Error(msg, contexts);
+    public static void LogInfo(string msg, params object[] contexts) => Logger.Information(msg, contexts);
+    public static void LogError(string msg, params object[] contexts) => Logger.Error(msg, contexts);
 }
