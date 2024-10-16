@@ -9,4 +9,5 @@ public static class VoxLogger
 
     public static void LogInfo(string msg, params object[] contexts) => Logger.Information(msg, contexts);
     public static void LogError(string msg, params object[] contexts) => Logger.Error(msg, contexts);
+    public static void LogWarn(string msg, params object[] contexts) => Logger.Warning(msg, contexts);
 }

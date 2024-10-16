@@ -24,10 +24,14 @@ public struct VoxMaterialComponent {
 
 public struct VoxCamera {
     public Matrix4 Projection;
+    public Vector3 CameraUp;
+    public Matrix4 View;
+    public Vector3 CameraForward;
+    public float Fov;
 }
 
 public struct VoxSelected {
     public bool IsSelected;
 }
 
-public struct Player;
+public struct VoxPlayer;
