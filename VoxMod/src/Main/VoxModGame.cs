@@ -168,26 +168,6 @@ public class VoxModGame(GameWindowSettings gameWindowSettings, NativeWindowSetti
             3 * sizeof(float));
         GL.EnableVertexAttribArray(1);
 
-        /*
-        //old exercise
-        GL.CreateBuffers(1, out _buffer);
-        GL.NamedBufferStorage(_buffer, sizeI + sizeV, 0, BufferStorageFlags.DynamicStorageBit);
-        GL.NamedBufferSubData(_buffer, 0, sizeI, _indices);
-        GL.NamedBufferSubData(_buffer, sizeI, sizeV, _vertices);
-
-        GL.CreateVertexArrays(1, out _vao);
-
-        GL.VertexArrayElementBuffer(_vao, _buffer);
-        GL.VertexArrayVertexBuffer(_vao, 0, _buffer, sizeI, Marshal.SizeOf<VoxSimpleVertexTextured>());
-        GL.EnableVertexArrayAttrib(_vao, 0);
-        GL.EnableVertexArrayAttrib(_vao, 1);
-        GL.VertexArrayAttribFormat(_vao, 0,  3, VertexAttribType.Float, false,
-            (uint)Marshal.OffsetOf<VoxSimpleVertexTextured>(nameof(VoxSimpleVertexTextured.Position)));
-        GL.VertexArrayAttribFormat(_vao, 1, 2, VertexAttribType.Float, false,
-            (uint)Marshal.OffsetOf<VoxSimpleVertexTextured>(nameof(VoxSimpleVertexTextured.UVs)));
-        GL.VertexArrayAttribBinding(_vao, 0, 0);
-        GL.VertexArrayAttribBindinwog(_vao, 1, 0);
-        */
         //StbImage.stbi_set_flip_vertically_on_load(1);
 
         _texture1 = GL.GenTexture();
