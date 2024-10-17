@@ -10,6 +10,8 @@
 
     <ItemGroup>
       <PackageReference Include="Arch" Version="1.2.8" />
+      <PackageReference Include="Arch.System" Version="1.0.5" />
+      <PackageReference Include="Arch.System.SourceGenerator" Version="1.2.1" />
       <PackageReference Include="AssetRipper.SharpGLTF.Core" Version="1.0.2" />
       <PackageReference Include="BepuPhysics" Version="2.4.0" />
       <PackageReference Include="ImGui.NET" Version="1.90.6.1" />
