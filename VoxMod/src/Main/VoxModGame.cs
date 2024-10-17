@@ -168,7 +168,7 @@ public class VoxModGame(GameWindowSettings gameWindowSettings, NativeWindowSetti
             3 * sizeof(float));
         GL.EnableVertexAttribArray(1);
 
-        //StbImage.stbi_set_flip_vertically_on_load(1);
+        StbImage.stbi_set_flip_vertically_on_load(1);
 
         _texture1 = GL.GenTexture();
         GL.BindTexture(TextureTarget.Texture2D, _texture1);
